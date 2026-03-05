@@ -1,6 +1,5 @@
 // Background service worker for Manifest V3
 
-const DYNAMIC_RULE_ID = 1001;
 const CONTENT_SCRIPT_ID = 'page-compare-content-script';
 
 function drawDiffIcon(size) {
@@ -103,14 +102,9 @@ function toOriginMatchPattern(rawUrl) {
   return `${parsed.origin}/*`;
 }
 
-function toRequestDomain(rawUrl) {
-  const parsed = new URL(rawUrl);
-  return parsed.hostname;
-}
 
 async function configureComparisonPermissions(url1, url2) {
   const originPatterns = Array.from(new Set([toOriginMatchPattern(url1), toOriginMatchPattern(url2)]));
-  const requestDomains = Array.from(new Set([toRequestDomain(url1), toRequestDomain(url2)]));
 
   await chrome.scripting.unregisterContentScripts({ ids: [CONTENT_SCRIPT_ID] }).catch(() => {});
 
@@ -124,24 +118,6 @@ async function configureComparisonPermissions(url1, url2) {
       persistAcrossSessions: false
     }
   ]);
-
-  await chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [DYNAMIC_RULE_ID],
-    addRules: [
-      {
-        id: DYNAMIC_RULE_ID,
-        priority: 1,
-        action: {
-          type: 'modifyHeaders',
-          responseHeaders: [{ header: 'X-Frame-Options', operation: 'remove' }]
-        },
-        condition: {
-          requestDomains,
-          resourceTypes: ['sub_frame']
-        }
-      }
-    ]
-  });
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
