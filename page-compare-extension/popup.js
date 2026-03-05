@@ -87,7 +87,7 @@ async function fillFromCurrentTab(targetInputId) {
 document.getElementById('fillUrl1').addEventListener('click', () => fillFromCurrentTab('url1'));
 document.getElementById('fillUrl2').addEventListener('click', () => fillFromCurrentTab('url2'));
 
-document.getElementById('openCompare').addEventListener('click', async () => {
+async function handleOpenCompare() {
   const { url1, url2 } = readCurrentInputValues();
 
   if (!url1 || !url2) {
@@ -122,7 +122,20 @@ document.getElementById('openCompare').addEventListener('click', async () => {
     url: chrome.runtime.getURL('overlay.html'),
     active: true
   });
-});
+}
+
+document.getElementById('openCompare').addEventListener('click', handleOpenCompare);
+
+for (const inputId of ['url1', 'url2']) {
+  document.getElementById(inputId).addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') {
+      return;
+    }
+
+    event.preventDefault();
+    handleOpenCompare();
+  });
+}
 
 restoreSavedUrls();
 setupAutoSave();
