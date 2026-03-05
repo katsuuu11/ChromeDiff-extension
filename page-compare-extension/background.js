@@ -138,6 +138,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+
+chrome.action.onClicked.addListener(() => {
+  chrome.tabs.create({
+    url: chrome.runtime.getURL('popup.html'),
+    active: true
+  });
+});
+
 chrome.runtime.onInstalled.addListener(() => {
   setGeneratedIcon();
   console.log('Page Compare Extension installed');
