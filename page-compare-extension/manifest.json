@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "description": "Quickly compare staging (including CMS) and production pages after release to spot visual differences",
   "permissions": [
-    "declarativeNetRequest",
     "storage",
     "scripting",
     "tabs"
@@ -13,23 +12,14 @@
     "http://*/*",
     "https://*/*"
   ],
-  "declarative_net_request": {
-    "rule_resources": [
-      {
-        "id": "ruleset_1",
-        "enabled": true,
-        "path": "rules.json"
-      }
-    ]
-  },
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon.png",
       "32": "icons/icon.png",
       "48": "icons/icon.png",
       "128": "icons/icon.png"
-    }
+    },
+    "default_popup": "popup.html"
   },
   "icons": {
     "16": "icons/icon.png",
