@@ -87,6 +87,25 @@ async function fillFromCurrentTab(targetInputId) {
 document.getElementById('fillUrl1').addEventListener('click', () => fillFromCurrentTab('url1'));
 document.getElementById('fillUrl2').addEventListener('click', () => fillFromCurrentTab('url2'));
 
+
+async function openFallbackTabs(url1, url2) {
+  await chrome.tabs.create({ url: url1, active: false });
+  await chrome.tabs.create({ url: url2, active: true });
+}
+
+function formatBlockedMessage(configResult) {
+  const lines = ['以下の理由でオーバーレイ表示がブロックされる可能性が高いため、通常タブで開きます。', ''];
+
+  for (const item of configResult.blockedUrls || []) {
+    lines.push(`- ${item.url}`);
+    for (const reason of item.reasons || []) {
+      lines.push(`  • ${reason}`);
+    }
+  }
+
+  lines.push('', '※ XFO/CSPヘッダーは改変していません。');
+  return lines.join('\n');
+}
 async function handleOpenCompare() {
   const { url1, url2 } = readCurrentInputValues();
 
@@ -118,6 +137,13 @@ async function handleOpenCompare() {
   }
 
   persistUrls(url1, url2);
+
+  if (configResult.canEmbed === false) {
+    alert(formatBlockedMessage(configResult));
+    await openFallbackTabs(url1, url2);
+    return;
+  }
+
   chrome.tabs.create({
     url: chrome.runtime.getURL('overlay.html'),
     active: true

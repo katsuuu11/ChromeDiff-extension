@@ -102,7 +102,6 @@ function toOriginMatchPattern(rawUrl) {
   return `${parsed.origin}/*`;
 }
 
-
 async function configureComparisonPermissions(url1, url2) {
   const originPatterns = Array.from(new Set([toOriginMatchPattern(url1), toOriginMatchPattern(url2)]));
 
@@ -120,6 +119,60 @@ async function configureComparisonPermissions(url1, url2) {
   ]);
 }
 
+function headerContainsFrameAncestors(cspHeaderValue) {
+  return cspHeaderValue
+    .split(';')
+    .map((directive) => directive.trim().toLowerCase())
+    .some((directive) => directive.startsWith('frame-ancestors'));
+}
+
+async function detectFrameBlocking(url) {
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      cache: 'no-store'
+    });
+
+    const xfo = response.headers.get('x-frame-options');
+    const csp = response.headers.get('content-security-policy');
+
+    const reasons = [];
+
+    if (xfo && xfo.trim()) {
+      reasons.push(`X-Frame-Options: ${xfo}`);
+    }
+
+    if (csp && headerContainsFrameAncestors(csp)) {
+      reasons.push('Content-Security-Policy has frame-ancestors');
+    }
+
+    return {
+      url,
+      blocked: reasons.length > 0,
+      reasons
+    };
+  } catch (error) {
+    return {
+      url,
+      blocked: false,
+      reasons: [],
+      warning: String(error)
+    };
+  }
+}
+
+async function inspectFrameCompatibility(url1, url2) {
+  const checks = await Promise.all([detectFrameBlocking(url1), detectFrameBlocking(url2)]);
+  const blockedUrls = checks.filter((item) => item.blocked);
+
+  return {
+    canEmbed: blockedUrls.length === 0,
+    checks,
+    blockedUrls
+  };
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type !== 'CONFIGURE_COMPARISON') {
     return;
@@ -128,7 +181,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       await configureComparisonPermissions(message.url1, message.url2);
-      sendResponse({ ok: true });
+      const compatibility = await inspectFrameCompatibility(message.url1, message.url2);
+      sendResponse({ ok: true, ...compatibility });
     } catch (error) {
       console.error('Failed to configure comparison permissions', error);
       sendResponse({ ok: false, error: String(error) });
