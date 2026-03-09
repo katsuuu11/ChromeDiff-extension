@@ -88,13 +88,21 @@ document.getElementById('fillUrl1').addEventListener('click', () => fillFromCurr
 document.getElementById('fillUrl2').addEventListener('click', () => fillFromCurrentTab('url2'));
 
 
-async function openFallbackTabs(url1, url2) {
-  await chrome.tabs.create({ url: url1, active: false });
-  await chrome.tabs.create({ url: url2, active: true });
+function openLiveCompare(url1, url2) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: 'OPEN_LIVE_COMPARE', url1, url2 }, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve({ ok: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+
+      resolve(response || { ok: false, error: 'No response from service worker' });
+    });
+  });
 }
 
 function formatBlockedMessage(configResult) {
-  const lines = ['以下の理由でオーバーレイ表示がブロックされる可能性が高いため、通常タブで開きます。', ''];
+  const lines = ['以下の理由でオーバーレイ表示がブロックされる可能性が高いため、ライブキャプチャ比較モードで開きます。', ''];
 
   for (const item of configResult.blockedUrls || []) {
     lines.push(`- ${item.url}`);
@@ -103,7 +111,7 @@ function formatBlockedMessage(configResult) {
     }
   }
 
-  lines.push('', '※ XFO/CSPヘッダーは改変していません。');
+  lines.push('', '※ XFO/CSPヘッダーは改変せず、通常タブをライブキャプチャして重ね合わせます（オーバーレイ内クリックは無効）。');
   return lines.join('\n');
 }
 async function handleOpenCompare() {
@@ -140,7 +148,13 @@ async function handleOpenCompare() {
 
   if (configResult.canEmbed === false) {
     alert(formatBlockedMessage(configResult));
-    await openFallbackTabs(url1, url2);
+
+    const liveResult = await openLiveCompare(url1, url2);
+    if (!liveResult.ok) {
+      alert(`ライブキャプチャ比較モードの準備に失敗しました。\n${liveResult.error || ''}`.trim());
+      return;
+    }
+
     return;
   }
 
