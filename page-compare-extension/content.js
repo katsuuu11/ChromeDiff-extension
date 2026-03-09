@@ -20,5 +20,20 @@ window.addEventListener('message', (event) => {
   }
 });
 
+chrome.runtime.onMessage.addListener((message) => {
+  if (!message || message.type !== 'SCROLL_DELTA') {
+    return;
+  }
+
+  const currentX = window.scrollX || window.pageXOffset;
+  const currentY = window.scrollY || window.pageYOffset;
+
+  window.scrollTo({
+    left: currentX + Number(message.deltaX || 0),
+    top: currentY + Number(message.deltaY || 0),
+    behavior: 'auto'
+  });
+});
+
 // 拡張が読み込まれたことを確認するためのログ（開発用、本番では削除可）
 console.log('Page Compare Extension: Content script loaded');

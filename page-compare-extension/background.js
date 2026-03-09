@@ -173,13 +173,54 @@ async function inspectFrameCompatibility(url1, url2) {
   };
 }
 
+async function openLiveCompareTabs(url1, url2, senderTab) {
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const windowId = senderTab?.windowId || activeTab?.windowId;
+
+  if (typeof windowId !== 'number') {
+    throw new Error('No browser window found for live compare');
+  }
+
+  const firstTab = await chrome.tabs.create({
+    url: url1,
+    active: false,
+    windowId
+  });
+
+  const secondTab = await chrome.tabs.create({
+    url: url2,
+    active: false,
+    windowId
+  });
+
+  await chrome.storage.local.set({
+    liveCompareTab1Id: firstTab.id,
+    liveCompareTab2Id: secondTab.id,
+    liveCompareStartedAt: Date.now()
+  });
+
+  await chrome.tabs.create({
+    url: chrome.runtime.getURL('live-overlay.html'),
+    active: true,
+    windowId
+  });
+
+  return { ok: true };
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message?.type !== 'CONFIGURE_COMPARISON') {
+  if (message?.type !== 'CONFIGURE_COMPARISON' && message?.type !== 'OPEN_LIVE_COMPARE') {
     return;
   }
 
   (async () => {
     try {
+      if (message.type === 'OPEN_LIVE_COMPARE') {
+        const result = await openLiveCompareTabs(message.url1, message.url2, sender.tab);
+        sendResponse(result);
+        return;
+      }
+
       await configureComparisonPermissions(message.url1, message.url2);
       const compatibility = await inspectFrameCompatibility(message.url1, message.url2);
       sendResponse({ ok: true, ...compatibility });
