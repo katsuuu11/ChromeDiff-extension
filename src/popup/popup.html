@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chrome Diff Pair</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main>
+    <h1>Chrome Diff Pair</h1>
+
+    <section id="newSessionSection">
+      <label>Staging base URL <input id="stagingUrl" placeholder="https://stg.example.com" /></label>
+      <label>Production base URL <input id="productionUrl" placeholder="https://www.example.com" /></label>
+      <label>Initial path (optional) <input id="initialPath" placeholder="/about?x=1#team" /></label>
+      <button id="startBtn">Start Compare</button>
+    </section>
+
+    <section id="activeSessionSection" class="hidden">
+      <p id="sessionMeta"></p>
+      <div class="row">
+        <button id="resumeBtn">Resume Session</button>
+        <button id="restartBtn">Restart Session</button>
+        <button id="reopenBtn">Reopen Missing Side</button>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="scrollSyncToggle" checked /> Scroll Sync</label>
+        <label><input type="checkbox" id="urlSyncToggle" checked /> URL Sync</label>
+      </div>
+      <button id="endBtn" class="danger">End Session</button>
+    </section>
+
+    <p id="message" aria-live="polite"></p>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
