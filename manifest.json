@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Chrome Diff Pair",
+  "description": "Store-safe side-by-side staging vs production comparison using two normal Chrome windows.",
+  "version": "1.0.0",
+  "permissions": ["tabs", "scripting", "storage", "windows"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Chrome Diff Pair",
+    "default_popup": "src/popup/popup.html"
+  }
+}
