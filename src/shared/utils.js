@@ -5,7 +5,7 @@ export function generateSessionId() {
 export function normalizeBaseUrl(input) {
   const url = new URL(input);
   if (!['http:', 'https:'].includes(url.protocol)) {
-    throw new Error('Only http/https URLs are supported');
+    throw new Error('http/https のURLのみ使えます。');
   }
   url.pathname = url.pathname.endsWith('/') ? url.pathname : `${url.pathname}/`;
   url.search = '';

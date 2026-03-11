@@ -12,43 +12,35 @@
 
     <section id="newSessionSection">
       <label>
-        Staging URL
+        ステージングURL
         <input id="stagingUrl" placeholder="https://stg.example.com/path" />
       </label>
       <div class="assistRow">
-        <button id="useCurrentAsStgBtn" class="subtle" type="button">Use current tab as STG</button>
-        <button id="generateProdBtn" class="subtle" type="button">Generate paired URL</button>
+        <button id="useCurrentAsStgBtn" class="subtle" type="button">今のタブをステージングに入れる</button>
       </div>
 
       <label>
-        Production URL
+        本番URL
         <input id="productionUrl" placeholder="https://www.example.com/path" />
       </label>
       <div class="assistRow">
-        <button id="useCurrentAsProdBtn" class="subtle" type="button">Use current tab as PROD</button>
-        <button id="generateStgBtn" class="subtle" type="button">Generate paired URL</button>
+        <button id="useCurrentAsProdBtn" class="subtle" type="button">今のタブを本番に入れる</button>
       </div>
 
-      <div id="recentPairsSection" class="hidden">
-        <p class="caption">Recent pairs</p>
-        <div id="recentPairsList" class="recentList"></div>
-      </div>
-
-      <button id="startBtn">Start Compare</button>
+      <button id="startBtn">比較を開始</button>
     </section>
 
     <section id="activeSessionSection" class="hidden">
       <p id="sessionMeta"></p>
       <div class="row">
-        <button id="resumeBtn">Resume Session</button>
-        <button id="restartBtn">Restart Session</button>
-        <button id="reopenBtn">Reopen Missing Side</button>
+        <button id="resumeBtn">再開</button>
+        <button id="restartBtn">やり直す</button>
       </div>
       <div class="row">
-        <label><input type="checkbox" id="scrollSyncToggle" checked /> Scroll Sync</label>
-        <label><input type="checkbox" id="urlSyncToggle" checked /> URL Sync</label>
+        <label><input type="checkbox" id="scrollSyncToggle" checked /> スクロール同期</label>
+        <label><input type="checkbox" id="urlSyncToggle" checked /> URL同期</label>
       </div>
-      <button id="endBtn" class="danger">End Session</button>
+      <button id="endBtn" class="danger">終了</button>
     </section>
 
     <p id="message" aria-live="polite"></p>

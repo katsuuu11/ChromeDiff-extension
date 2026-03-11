@@ -1,64 +1,51 @@
 # Chrome Diff Pair
 
-Chrome Diff Pair is a Manifest V3 Chrome extension for fast **staging vs production** verification using two **normal Chrome windows** (left/right), with optional scroll and URL sync.
+Chrome Diff Pair は、ステージング環境と本番環境を 2 つの通常 Chrome ウィンドウで並べて比較する Manifest V3 拡張です。
 
-## Feature summary
+## v1 UX（シンプル版）
 
-- Starts a comparison session from two explicit popup inputs: **Staging URL** and **Production URL**.
-- Keeps the user in control of final URLs while offering lightweight assist actions:
-  - Use current tab as STG or PROD.
-  - Generate the other side URL from stored mapping hints.
-  - Reuse recent URL pairs.
-- Opens two standard Chrome windows and positions them side-by-side.
-- Maintains one active session in `chrome.storage.local`.
-- Syncs scroll bidirectionally by scroll ratio (handles different page heights better than pixel offset).
-- Optional URL/path sync between configured staging/production environments.
-- In-page lightweight floating control bar (STG/PROD label, pause/resume sync, end session, re-align).
-- Session recovery + degraded mode when one side is closed, with popup action to reopen missing side.
+- ポップアップは **2つの入力だけ**で開始します。  
+  - **ステージングURL**
+  - **本番URL**
+- URL の自動推測・自動生成は行いません。
+- 補助ボタンは次の 2 つのみです。  
+  - **今のタブをステージングに入れる**
+  - **今のタブを本番に入れる**
+- ユーザーが最終的な 2 つの URL を明示的に決める設計です。
 
-## Installation / setup
+## 主な機能
 
-1. Open `chrome://extensions`.
-2. Enable **Developer mode**.
-3. Click **Load unpacked**.
-4. Select this repository root (`ChromeDiff-extension`).
-5. Click the extension action icon, fill both URLs, and start a session.
+- ポップアップから「**比較を開始**」でセッション開始
+- 左右ウィンドウを自動配置して同時比較
+- スクロール同期（比率ベース）
+- URL 同期（ON/OFF 可能）
+- セッション操作（**再開 / やり直す / 終了**）
+- 画面内コントロールバー（**ステージング / 本番 / 同期を止める / 同期を再開 / 位置を合わせる / 終了 / 最小化**）
+- 状態表示（**比較中 / 同期停止中 / 片方の画面が閉じられました**）
 
-## Permissions explanation
+## インストール
 
-- `tabs`: manage comparison tabs, read active-tab URL for assist actions, and navigate paired pages.
-- `windows`: create/position two normal comparison windows.
-- `scripting`: inject compare agent scripts into compared tabs.
-- `storage`: persist active session state plus URL assist hints/history.
-- `host_permissions: <all_urls>`: allow operation across user-provided staging/production URLs.
+1. `chrome://extensions` を開く
+2. **デベロッパーモード** を ON
+3. **パッケージ化されていない拡張機能を読み込む** をクリック
+4. このリポジトリ（`ChromeDiff-extension`）を選択
+5. 拡張アイコンを開き、2つのURLを入れて **比較を開始**
 
-## Store-compliance rationale
+## 権限
 
-This architecture is intentionally designed for Chrome Web Store safety:
+- `tabs`: 比較タブの操作、現在タブ URL の取得
+- `windows`: 左右ウィンドウの作成・再配置
+- `scripting`: 比較用コンテンツスクリプトの注入
+- `storage`: セッション状態の保存
+- `host_permissions: <all_urls>`: 入力された URL で動作するため
 
-- Uses **normal windows**, not iframes.
-- Does **not** rewrite/remove response headers.
-- Does **not** bypass `X-Frame-Options`, CSP, or `frame-ancestors`.
-- Does **not** inject remote code.
-- Avoids `eval`/`new Function` and unsafe inline script patterns.
+## 制限事項
 
-## Known limitations
+- iframe オーバーレイ型の比較ではありません
+- ピクセル単位の厳密 diff ツールではありません
+- サイト構造によってはスクロール同期がずれる場合があります
 
-- Not an overlay/iframe compare tool.
-- Not a pixel-perfect visual diff engine.
-- Some sites with unusual scroll containers may not sync perfectly.
-- Highly dynamic SPA transitions and cross-origin jumps may require additional heuristics.
-- Auto-generation of paired URLs depends on previously seen mapping hints.
-
-## Future roadmap (v2+)
-
-- Lightweight DOM/text difference hints.
-- Next/previous difference navigation.
-- Link mismatch checks.
-- Element highlight suggestions.
-- Side panel control surface.
-
-## Project structure
+## プロジェクト構成
 
 ```
 /src
