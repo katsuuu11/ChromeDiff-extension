@@ -1,11 +1,13 @@
 import { MESSAGE_TYPES, SIDE, SUPPRESSION_MS } from '../shared/constants.js';
 import { logger } from '../shared/logger.js';
-import { getSession, setSession, clearSession } from '../shared/storage.js';
-import { generateSessionId } from '../shared/utils.js';
+import { getSession, setSession, clearSession, getUrlAssistState, setUrlAssistState } from '../shared/storage.js';
+import { generateSessionId, normalizeBaseUrl } from '../shared/utils.js';
 import { buildPairedUrls, mapUrlToOtherSide } from './url-mapper.js';
 import { openPairedWindows, realignWindows } from './window-manager.js';
 
 const navSuppressByTabId = new Map();
+const MAX_RECENT_PAIRS = 6;
+const MAX_MAPPING_HINTS = 12;
 
 async function injectCompareAgent(tabId, side) {
   await chrome.scripting.executeScript({
@@ -21,18 +23,46 @@ async function injectCompareAgent(tabId, side) {
   await chrome.tabs.sendMessage(tabId, { type: 'INIT_COMPARE_AGENT', side });
 }
 
+function normalizeHint(baseUrl) {
+  return normalizeBaseUrl(baseUrl).toString();
+}
+
+async function rememberUrlPair(stagingUrl, productionUrl) {
+  const assist = await getUrlAssistState();
+  const now = new Date().toISOString();
+
+  const recentPairs = [
+    { stagingUrl, productionUrl, updatedAt: now },
+    ...assist.recentPairs.filter((pair) => pair.stagingUrl !== stagingUrl || pair.productionUrl !== productionUrl),
+  ].slice(0, MAX_RECENT_PAIRS);
+
+  const hint = {
+    stagingBaseUrl: normalizeHint(stagingUrl),
+    productionBaseUrl: normalizeHint(productionUrl),
+    updatedAt: now,
+  };
+
+  const mappingHints = [
+    hint,
+    ...assist.mappingHints.filter(
+      (item) => item.stagingBaseUrl !== hint.stagingBaseUrl || item.productionBaseUrl !== hint.productionBaseUrl,
+    ),
+  ].slice(0, MAX_MAPPING_HINTS);
+
+  await setUrlAssistState({ recentPairs, mappingHints });
+}
+
 export async function startSession(payload) {
-  const { stagingBaseUrl, productionBaseUrl, initialPath } = payload;
-  const { leftUrl, rightUrl } = buildPairedUrls(stagingBaseUrl, productionBaseUrl, initialPath || '/');
-  const { leftWindow, rightWindow } = await openPairedWindows(leftUrl, rightUrl);
+  const { stagingUrl, productionUrl } = payload;
+  const { leftWindow, rightWindow } = await openPairedWindows(stagingUrl, productionUrl);
   const leftTabId = leftWindow.tabs?.[0]?.id;
   const rightTabId = rightWindow.tabs?.[0]?.id;
 
   const session = {
     sessionId: generateSessionId(),
     createdAt: new Date().toISOString(),
-    stagingBaseUrl,
-    productionBaseUrl,
+    stagingBaseUrl: normalizeHint(stagingUrl),
+    productionBaseUrl: normalizeHint(productionUrl),
     leftWindowId: leftWindow.id,
     rightWindowId: rightWindow.id,
     leftTabId,
@@ -41,11 +71,12 @@ export async function startSession(payload) {
     urlSyncEnabled: true,
     scrollSyncEnabled: true,
     degraded: false,
-    lastKnownLeftUrl: leftUrl,
-    lastKnownRightUrl: rightUrl,
+    lastKnownLeftUrl: stagingUrl,
+    lastKnownRightUrl: productionUrl,
   };
 
   await setSession(session);
+  await rememberUrlPair(stagingUrl, productionUrl);
   if (leftTabId) await injectCompareAgent(leftTabId, SIDE.LEFT);
   if (rightTabId) await injectCompareAgent(rightTabId, SIDE.RIGHT);
   return session;

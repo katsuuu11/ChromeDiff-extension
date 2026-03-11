@@ -11,9 +11,29 @@
     <h1>Chrome Diff Pair</h1>
 
     <section id="newSessionSection">
-      <label>Staging base URL <input id="stagingUrl" placeholder="https://stg.example.com" /></label>
-      <label>Production base URL <input id="productionUrl" placeholder="https://www.example.com" /></label>
-      <label>Initial path (optional) <input id="initialPath" placeholder="/about?x=1#team" /></label>
+      <label>
+        Staging URL
+        <input id="stagingUrl" placeholder="https://stg.example.com/path" />
+      </label>
+      <div class="assistRow">
+        <button id="useCurrentAsStgBtn" class="subtle" type="button">Use current tab as STG</button>
+        <button id="generateProdBtn" class="subtle" type="button">Generate paired URL</button>
+      </div>
+
+      <label>
+        Production URL
+        <input id="productionUrl" placeholder="https://www.example.com/path" />
+      </label>
+      <div class="assistRow">
+        <button id="useCurrentAsProdBtn" class="subtle" type="button">Use current tab as PROD</button>
+        <button id="generateStgBtn" class="subtle" type="button">Generate paired URL</button>
+      </div>
+
+      <div id="recentPairsSection" class="hidden">
+        <p class="caption">Recent pairs</p>
+        <div id="recentPairsList" class="recentList"></div>
+      </div>
+
       <button id="startBtn">Start Compare</button>
     </section>
 
