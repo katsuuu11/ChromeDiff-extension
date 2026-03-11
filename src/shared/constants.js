@@ -1,5 +1,6 @@
 export const STORAGE_KEYS = {
   SESSION: 'chromeDiffPair.activeSession',
+  URL_ASSIST: 'chromeDiffPair.urlAssist',
 };
 
 export const SIDE = {

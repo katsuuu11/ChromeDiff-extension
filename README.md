@@ -4,7 +4,11 @@ Chrome Diff Pair is a Manifest V3 Chrome extension for fast **staging vs product
 
 ## Feature summary
 
-- Starts a comparison session from popup input (staging/prod base URL + optional path).
+- Starts a comparison session from two explicit popup inputs: **Staging URL** and **Production URL**.
+- Keeps the user in control of final URLs while offering lightweight assist actions:
+  - Use current tab as STG or PROD.
+  - Generate the other side URL from stored mapping hints.
+  - Reuse recent URL pairs.
 - Opens two standard Chrome windows and positions them side-by-side.
 - Maintains one active session in `chrome.storage.local`.
 - Syncs scroll bidirectionally by scroll ratio (handles different page heights better than pixel offset).
@@ -18,14 +22,14 @@ Chrome Diff Pair is a Manifest V3 Chrome extension for fast **staging vs product
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
 4. Select this repository root (`ChromeDiff-extension`).
-5. Click the extension action icon and start a session.
+5. Click the extension action icon, fill both URLs, and start a session.
 
 ## Permissions explanation
 
-- `tabs`: manage comparison tabs and navigate paired pages.
+- `tabs`: manage comparison tabs, read active-tab URL for assist actions, and navigate paired pages.
 - `windows`: create/position two normal comparison windows.
 - `scripting`: inject compare agent scripts into compared tabs.
-- `storage`: persist and recover active session state.
+- `storage`: persist active session state plus URL assist hints/history.
 - `host_permissions: <all_urls>`: allow operation across user-provided staging/production URLs.
 
 ## Store-compliance rationale
@@ -44,6 +48,7 @@ This architecture is intentionally designed for Chrome Web Store safety:
 - Not a pixel-perfect visual diff engine.
 - Some sites with unusual scroll containers may not sync perfectly.
 - Highly dynamic SPA transitions and cross-origin jumps may require additional heuristics.
+- Auto-generation of paired URLs depends on previously seen mapping hints.
 
 ## Future roadmap (v2+)
 
