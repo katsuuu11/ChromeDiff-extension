@@ -1,5 +1,4 @@
-import { MESSAGE_TYPES, SIDE, STORAGE_KEYS } from '../shared/constants.js';
-import { mapUrlToOtherSide } from '../background/url-mapper.js';
+import { MESSAGE_TYPES } from '../shared/constants.js';
 import { safeErrorMessage } from '../shared/utils.js';
 
 const el = {
@@ -9,14 +8,9 @@ const el = {
   productionUrl: document.getElementById('productionUrl'),
   useCurrentAsStgBtn: document.getElementById('useCurrentAsStgBtn'),
   useCurrentAsProdBtn: document.getElementById('useCurrentAsProdBtn'),
-  generateProdBtn: document.getElementById('generateProdBtn'),
-  generateStgBtn: document.getElementById('generateStgBtn'),
-  recentPairsSection: document.getElementById('recentPairsSection'),
-  recentPairsList: document.getElementById('recentPairsList'),
   startBtn: document.getElementById('startBtn'),
   resumeBtn: document.getElementById('resumeBtn'),
   restartBtn: document.getElementById('restartBtn'),
-  reopenBtn: document.getElementById('reopenBtn'),
   endBtn: document.getElementById('endBtn'),
   scrollSyncToggle: document.getElementById('scrollSyncToggle'),
   urlSyncToggle: document.getElementById('urlSyncToggle'),
@@ -30,13 +24,13 @@ function setMessage(msg, isError = false) {
 }
 
 function validateInput(staging, production) {
-  if (!staging || !production) throw new Error('Staging and production URLs are required.');
+  if (!staging || !production) throw new Error('ステージングURLと本番URLを入れてください。');
   const s = new URL(staging);
   const p = new URL(production);
   if (!['http:', 'https:'].includes(s.protocol) || !['http:', 'https:'].includes(p.protocol)) {
-    throw new Error('Only http/https URLs are supported');
+    throw new Error('http/https のURLのみ使えます。');
   }
-  if (s.toString() === p.toString()) setMessage('Warning: staging and production look identical.');
+  if (s.toString() === p.toString()) setMessage('ステージングURLと本番URLが同じです。');
 }
 
 function sendMessage(message) {
@@ -45,57 +39,22 @@ function sendMessage(message) {
 
 async function getCurrentTabUrl() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.url) throw new Error('No active tab URL available.');
+  if (!tab?.url) throw new Error('今のタブのURLを取得できませんでした。');
   if (!tab.url.startsWith('http://') && !tab.url.startsWith('https://')) {
-    throw new Error('Current tab must be an http/https page.');
+    throw new Error('今のタブは http/https ページで開いてください。');
   }
   return tab.url;
 }
 
-function pickGeneratedUrl(sourceUrl, targetSide, assistState) {
-  const hints = assistState.mappingHints ?? [];
-  for (const hint of hints) {
-    const fakeSession = {
-      stagingBaseUrl: hint.stagingBaseUrl,
-      productionBaseUrl: hint.productionBaseUrl,
-    };
-    const sourceSide = targetSide === 'production' ? SIDE.LEFT : SIDE.RIGHT;
-    const mapped = mapUrlToOtherSide(sourceSide, sourceUrl, fakeSession);
-    if (mapped) return mapped;
-  }
-  return null;
-}
-
-async function getAssistState() {
-  const data = await chrome.storage.local.get(STORAGE_KEYS.URL_ASSIST);
-  return data[STORAGE_KEYS.URL_ASSIST] ?? { recentPairs: [], mappingHints: [] };
-}
-
-function renderRecentPairs(assistState) {
-  const recentPairs = assistState.recentPairs ?? [];
-  el.recentPairsList.innerHTML = '';
-  el.recentPairsSection.classList.toggle('hidden', recentPairs.length === 0);
-
-  for (const pair of recentPairs) {
-    const button = document.createElement('button');
-    button.className = 'subtle recentPair';
-    button.type = 'button';
-    button.title = `${pair.stagingUrl} ⇄ ${pair.productionUrl}`;
-    button.textContent = `${pair.stagingUrl} ⇄ ${pair.productionUrl}`;
-    button.addEventListener('click', () => {
-      el.stagingUrl.value = pair.stagingUrl;
-      el.productionUrl.value = pair.productionUrl;
-      setMessage('Filled URLs from recent pair.');
-    });
-    el.recentPairsList.appendChild(button);
-  }
+function describeSession(session) {
+  if (!session) return '';
+  if (session.degraded) return '片方の画面が閉じられました';
+  if (!session.syncEnabled) return '同期停止中';
+  return '比較中';
 }
 
 async function refreshUI() {
-  const [response, assistState] = await Promise.all([
-    sendMessage({ type: MESSAGE_TYPES.GET_SESSION_STATE }),
-    getAssistState(),
-  ]);
+  const response = await sendMessage({ type: MESSAGE_TYPES.GET_SESSION_STATE });
 
   const session = response?.session;
   const hasSession = !!session;
@@ -103,10 +62,8 @@ async function refreshUI() {
   el.newSessionSection.classList.toggle('hidden', hasSession);
   el.activeSessionSection.classList.toggle('hidden', !hasSession);
 
-  renderRecentPairs(assistState);
-
   if (session) {
-    el.sessionMeta.textContent = `Session ${session.sessionId} (${session.degraded ? 'degraded' : 'active'})`;
+    el.sessionMeta.textContent = describeSession(session);
     el.scrollSyncToggle.checked = !!session.scrollSyncEnabled;
     el.urlSyncToggle.checked = !!session.urlSyncEnabled;
   }
@@ -122,7 +79,7 @@ el.startBtn.addEventListener('click', async () => {
       payload: { stagingUrl, productionUrl },
     });
     if (!response.ok) throw new Error(response.error);
-    setMessage('Session started.');
+    setMessage('比較を開始しました。');
     await refreshUI();
   } catch (error) {
     setMessage(safeErrorMessage(error), true);
@@ -132,7 +89,7 @@ el.startBtn.addEventListener('click', async () => {
 el.useCurrentAsStgBtn.addEventListener('click', async () => {
   try {
     el.stagingUrl.value = await getCurrentTabUrl();
-    setMessage('Current tab copied to STG URL.');
+    setMessage('今のタブをステージングURLに入れました。');
   } catch (error) {
     setMessage(safeErrorMessage(error), true);
   }
@@ -141,35 +98,7 @@ el.useCurrentAsStgBtn.addEventListener('click', async () => {
 el.useCurrentAsProdBtn.addEventListener('click', async () => {
   try {
     el.productionUrl.value = await getCurrentTabUrl();
-    setMessage('Current tab copied to PROD URL.');
-  } catch (error) {
-    setMessage(safeErrorMessage(error), true);
-  }
-});
-
-el.generateProdBtn.addEventListener('click', async () => {
-  try {
-    const source = el.stagingUrl.value.trim();
-    if (!source) throw new Error('Enter a STG URL first.');
-    const assistState = await getAssistState();
-    const generated = pickGeneratedUrl(source, 'production', assistState);
-    if (!generated) throw new Error('No mapping hint found to generate PROD URL.');
-    el.productionUrl.value = generated;
-    setMessage('Generated PROD URL from STG URL.');
-  } catch (error) {
-    setMessage(safeErrorMessage(error), true);
-  }
-});
-
-el.generateStgBtn.addEventListener('click', async () => {
-  try {
-    const source = el.productionUrl.value.trim();
-    if (!source) throw new Error('Enter a PROD URL first.');
-    const assistState = await getAssistState();
-    const generated = pickGeneratedUrl(source, 'staging', assistState);
-    if (!generated) throw new Error('No mapping hint found to generate STG URL.');
-    el.stagingUrl.value = generated;
-    setMessage('Generated STG URL from PROD URL.');
+    setMessage('今のタブを本番URLに入れました。');
   } catch (error) {
     setMessage(safeErrorMessage(error), true);
   }
@@ -177,7 +106,7 @@ el.generateStgBtn.addEventListener('click', async () => {
 
 el.resumeBtn.addEventListener('click', async () => {
   const response = await sendMessage({ type: MESSAGE_TYPES.RESUME_SESSION });
-  setMessage(response.ok ? 'Session resumed.' : response.error, !response.ok);
+  setMessage(response.ok ? '再開しました。' : response.error, !response.ok);
   await refreshUI();
 });
 
@@ -192,30 +121,24 @@ el.restartBtn.addEventListener('click', async () => {
       productionUrl: existing.session.lastKnownRightUrl || existing.session.productionBaseUrl,
     },
   });
-  setMessage(response.ok ? 'Session restarted.' : response.error, !response.ok);
-  await refreshUI();
-});
-
-el.reopenBtn.addEventListener('click', async () => {
-  const response = await sendMessage({ type: MESSAGE_TYPES.REOPEN_MISSING_SIDE });
-  setMessage(response.ok ? 'Missing side reopened (if needed).' : response.error, !response.ok);
+  setMessage(response.ok ? 'やり直しました。' : response.error, !response.ok);
   await refreshUI();
 });
 
 el.endBtn.addEventListener('click', async () => {
   const response = await sendMessage({ type: MESSAGE_TYPES.END_SESSION });
-  setMessage(response.ok ? 'Session ended.' : response.error, !response.ok);
+  setMessage(response.ok ? '終了しました。' : response.error, !response.ok);
   await refreshUI();
 });
 
 el.scrollSyncToggle.addEventListener('change', async () => {
   const response = await sendMessage({ type: MESSAGE_TYPES.TOGGLE_SCROLL_SYNC, enabled: el.scrollSyncToggle.checked });
-  setMessage(response.ok ? 'Scroll sync updated.' : response.error, !response.ok);
+  setMessage(response.ok ? 'スクロール同期を更新しました。' : response.error, !response.ok);
 });
 
 el.urlSyncToggle.addEventListener('change', async () => {
   const response = await sendMessage({ type: MESSAGE_TYPES.TOGGLE_URL_SYNC, enabled: el.urlSyncToggle.checked });
-  setMessage(response.ok ? 'URL sync updated.' : response.error, !response.ok);
+  setMessage(response.ok ? 'URL同期を更新しました。' : response.error, !response.ok);
 });
 
 refreshUI().catch((error) => setMessage(safeErrorMessage(error), true));

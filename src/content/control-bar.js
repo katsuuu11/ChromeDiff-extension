@@ -20,11 +20,11 @@
       </style>
       <div class="bar" id="bar">
         <span class="pill" id="side">--</span>
-        <span id="status">Session active</span>
-        <button class="btn" id="pause">Pause</button>
-        <button class="btn" id="realign">Re-align</button>
-        <button class="btn" id="end">End</button>
-        <button class="btn" id="minimize">_</button>
+        <span id="status">比較中</span>
+        <button class="btn" id="pause">同期を止める</button>
+        <button class="btn" id="realign">位置を合わせる</button>
+        <button class="btn" id="end">終了</button>
+        <button class="btn" id="minimize">最小化</button>
       </div>
       <button class="btn min" id="restore">Chrome Diff Pair</button>
     `;
@@ -45,8 +45,8 @@
     return {
       setState({ sideLabel, syncEnabled, degraded }) {
         shadow.getElementById('side').textContent = sideLabel;
-        shadow.getElementById('status').textContent = degraded ? 'Session degraded' : `Sync: ${syncEnabled ? 'ON' : 'OFF'}`;
-        shadow.getElementById('pause').textContent = syncEnabled ? 'Pause Sync' : 'Resume Sync';
+        shadow.getElementById('status').textContent = degraded ? '片方の画面が閉じられました' : (syncEnabled ? '比較中' : '同期停止中');
+        shadow.getElementById('pause').textContent = syncEnabled ? '同期を止める' : '同期を再開';
       },
       onPause(handler) { shadow.getElementById('pause').addEventListener('click', handler); },
       onEnd(handler) { shadow.getElementById('end').addEventListener('click', handler); },

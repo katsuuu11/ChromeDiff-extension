@@ -17,7 +17,7 @@
     const state = window.__chromeDiffPairState;
     if (!controlBar || !state.session) return;
     controlBar.setState({
-      sideLabel: state.side === 'left' ? 'STG' : 'PROD',
+      sideLabel: state.side === 'left' ? 'ステージング' : '本番',
       syncEnabled: !!state.session.syncEnabled,
       degraded: !!state.session.degraded,
     });
